@@ -1,13 +1,14 @@
 const axios = require('axios');
 
-// Automatic URL cleaner para makaiwas sa Invalid URL error
-function sanitizeUrl(rawUrl) {
-  if (!rawUrl) return "https://aps1-omada-cloud.tplinkcloud.com";
-  const match = rawUrl.match(/https?:\/\/[^\s\]\)]+/);
-  return match ? match[0] : "https://aps1-omada-cloud.tplinkcloud.com";
+// Linisin ang URL at tanggalin ang anumang extra slash sa dulo
+function cleanBaseUrl(rawUrl) {
+  let url = rawUrl || "https://aps1-omada-cloud.tplinkcloud.com";
+  const match = url.match(/https?:\/\/[^\s\]\)]+/);
+  if (match) url = match[0];
+  return url.replace(/\/+$/, ''); // Tanggalin ang trailing slash
 }
 
-const OMADA_URL = sanitizeUrl(process.env.OMADA_URL);
+const OMADA_URL = cleanBaseUrl(process.env.OMADA_URL);
 const CLIENT_ID = (process.env.CLIENT_ID || "2d97f4d977fd41cf9c14412269036368").trim();
 const CLIENT_SECRET = (process.env.CLIENT_SECRET || "25b6e7c890ea48228f5ef0a52156d9f8").trim();
 const SITE_ID = (process.env.SITE_ID || "6a615c90e78f4e28047ab010").trim();
@@ -22,7 +23,10 @@ async function getAccessToken() {
     return accessToken;
   }
 
-  const response = await axios.post(`${OMADA_URL}/openapi/authorize/token?grant_type=client_credentials`, {
+  const tokenUrl = `${OMADA_URL}/openapi/authorize/token?grant_type=client_credentials`;
+  console.log("Fetching token from:", tokenUrl);
+
+  const response = await axios.post(tokenUrl, {
     omadaClientId: CLIENT_ID,
     omadaClientSecret: CLIENT_SECRET
   });
@@ -52,14 +56,13 @@ module.exports = async (req, res) => {
   try {
     const token = await getAccessToken();
 
-    // Direct search by code
-    const omadaRes = await axios.get(
-      `${OMADA_URL}/openapi/v1/${OMADA_CID}/sites/${SITE_ID}/vouchers`,
-      {
-        headers: { 'AccessToken': token },
-        params: { page: 1, pageSize: 1000 }
-      }
-    );
+    const voucherUrl = `${OMADA_URL}/openapi/v1/${OMADA_CID}/sites/${SITE_ID}/vouchers`;
+    console.log("Fetching vouchers from:", voucherUrl);
+
+    const omadaRes = await axios.get(voucherUrl, {
+      headers: { 'AccessToken': token },
+      params: { page: 1, pageSize: 1000 }
+    });
 
     const result = omadaRes.data;
 
