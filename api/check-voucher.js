@@ -1,10 +1,17 @@
 const axios = require('axios');
 
-const OMADA_URL = process.env.OMADA_URL || "https://aps1-omada-cloud.tplinkcloud.com";
-const CLIENT_ID = process.env.CLIENT_ID || "2d97f4d977fd41cf9c14412269036368";
-const CLIENT_SECRET = process.env.CLIENT_SECRET || "25b6e7c890ea48228f5ef0a52156d9f8";
-const SITE_ID = process.env.SITE_ID || "6a615c90e78f4e28047ab010";
-const OMADA_CID = process.env.OMADA_CID || "dd4b631441b02b1d9787466c7bf876f7";
+// Automatic URL cleaner para makaiwas sa Invalid URL error
+function sanitizeUrl(rawUrl) {
+  if (!rawUrl) return "https://aps1-omada-cloud.tplinkcloud.com";
+  const match = rawUrl.match(/https?:\/\/[^\s\]\)]+/);
+  return match ? match[0] : "https://aps1-omada-cloud.tplinkcloud.com";
+}
+
+const OMADA_URL = sanitizeUrl(process.env.OMADA_URL);
+const CLIENT_ID = (process.env.CLIENT_ID || "2d97f4d977fd41cf9c14412269036368").trim();
+const CLIENT_SECRET = (process.env.CLIENT_SECRET || "25b6e7c890ea48228f5ef0a52156d9f8").trim();
+const SITE_ID = (process.env.SITE_ID || "6a615c90e78f4e28047ab010").trim();
+const OMADA_CID = (process.env.OMADA_CID || "dd4b631441b02b1d9787466c7bf876f7").trim();
 
 let accessToken = null;
 let tokenExpiresAt = 0;
@@ -45,15 +52,7 @@ module.exports = async (req, res) => {
   try {
     const token = await getAccessToken();
 
-    // Debug 1: I-log ang paboritong sites ng controller
-    const sitesRes = await axios.get(
-      `${OMADA_URL}/openapi/v1/${OMADA_CID}/sites`,
-      { headers: { 'AccessToken': token }, params: { page: 1, pageSize: 100 } }
-    );
-    console.log("=== OMADA SITES FOUND ===");
-    console.log(JSON.stringify(sitesRes.data?.result?.data || sitesRes.data));
-
-    // Fetch Vouchers
+    // Direct search by code
     const omadaRes = await axios.get(
       `${OMADA_URL}/openapi/v1/${OMADA_CID}/sites/${SITE_ID}/vouchers`,
       {
@@ -61,9 +60,6 @@ module.exports = async (req, res) => {
         params: { page: 1, pageSize: 1000 }
       }
     );
-
-    console.log("=== OMADA VOUCHER RESPONSE ===");
-    console.log(JSON.stringify(omadaRes.data));
 
     const result = omadaRes.data;
 
