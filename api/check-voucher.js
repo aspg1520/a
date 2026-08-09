@@ -1,9 +1,9 @@
 const axios = require('axios');
 
 const OMADA_URL = process.env.OMADA_URL || "https://aps1-omada-cloud.tplinkcloud.com";
-const CLIENT_ID = process.env.CLIENT_ID || "2d97f4d977fd41cf9c14412269036368";[cite: 1]
-const CLIENT_SECRET = process.env.CLIENT_SECRET || "25b6e7c890ea48228f5ef0a52156d9f8";[cite: 1]
-const SITE_ID = process.env.SITE_ID || "6a615c90e78f4e28047ab010";[cite: 1]
+const CLIENT_ID = process.env.CLIENT_ID || "2d97f4d977fd41cf9c14412269036368";
+const CLIENT_SECRET = process.env.CLIENT_SECRET || "25b6e7c890ea48228f5ef0a52156d9f8";
+const SITE_ID = process.env.SITE_ID || "6a615c90e78f4e28047ab010";
 const OMADA_CID = process.env.OMADA_CID || "dd4b631441b02b1d9787466c7bf876f7";
 
 let accessToken = null;
