@@ -1,11 +1,13 @@
 const axios = require('axios');
 
-// Linisin ang URL at tanggalin ang anumang extra slash sa dulo
 function cleanBaseUrl(rawUrl) {
   let url = rawUrl || "https://aps1-omada-cloud.tplinkcloud.com";
-  const match = url.match(/https?:\/\/[^\s\]\)]+/);
-  if (match) url = match[0];
-  return url.replace(/\/+$/, ''); // Tanggalin ang trailing slash
+  try {
+    const parsed = new URL(url);
+    return parsed.origin;
+  } catch (e) {
+    return "https://aps1-omada-cloud.tplinkcloud.com";
+  }
 }
 
 const OMADA_URL = cleanBaseUrl(process.env.OMADA_URL);
@@ -23,20 +25,26 @@ async function getAccessToken() {
     return accessToken;
   }
 
-  const tokenUrl = `${OMADA_URL}/openapi/authorize/token?grant_type=client_credentials`;
-  console.log("Fetching token from:", tokenUrl);
+  const tokenUrl = new URL('/openapi/authorize/token', OMADA_URL);
+  tokenUrl.searchParams.append('grant_type', 'client_credentials');
 
-  const response = await axios.post(tokenUrl, {
-    omadaClientId: CLIENT_ID,
-    omadaClientSecret: CLIENT_SECRET
-  });
+  try {
+    const response = await axios.post(tokenUrl.toString(), {
+      omadaClientId: CLIENT_ID,
+      omadaClientSecret: CLIENT_SECRET
+    });
 
-  if (response.data && response.data.result) {
-    accessToken = response.data.result.accessToken;
-    tokenExpiresAt = now + (response.data.result.expiresIn - 300) * 1000;
-    return accessToken;
+    if (response.data && response.data.result) {
+      accessToken = response.data.result.accessToken;
+      tokenExpiresAt = now + (response.data.result.expiresIn - 300) * 1000;
+      return accessToken;
+    }
+    throw new Error("Invalid response format from Omada auth");
+  } catch (err) {
+    console.error("=== AUTH ERROR DETAILED ===");
+    console.error(err.response?.data || err.message);
+    throw err;
   }
-  throw new Error("Authentication failed");
 }
 
 module.exports = async (req, res) => {
@@ -56,10 +64,9 @@ module.exports = async (req, res) => {
   try {
     const token = await getAccessToken();
 
-    const voucherUrl = `${OMADA_URL}/openapi/v1/${OMADA_CID}/sites/${SITE_ID}/vouchers`;
-    console.log("Fetching vouchers from:", voucherUrl);
+    const voucherUrl = new URL(`/openapi/v1/${OMADA_CID}/sites/${SITE_ID}/vouchers`, OMADA_URL);
 
-    const omadaRes = await axios.get(voucherUrl, {
+    const omadaRes = await axios.get(voucherUrl.toString(), {
       headers: { 'AccessToken': token },
       params: { page: 1, pageSize: 1000 }
     });
@@ -86,7 +93,7 @@ module.exports = async (req, res) => {
       return res.json({ found: false });
     }
   } catch (error) {
-    console.error("=== ERROR DETAILED ===");
+    console.error("=== VOUCHER CHECK ERROR ===");
     console.error(error.response?.data || error.message);
     res.status(500).json({ error: "Server error checking voucher" });
   }
