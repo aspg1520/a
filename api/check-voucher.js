@@ -8,7 +8,7 @@ module.exports = async (req, res) => {
   const cleanInput = inputCode.replace(/[^a-zA-Z0-9]/g, '');
 
   if (!cleanInput) {
-    return res.status(400).json({ error: "Voucher code is required" });
+    return res.status(200).json({ found: false, error: "No code provided" });
   }
 
   const OMADA_URL = (process.env.OMADA_URL || "https://aps1-omada-cloud.tplinkcloud.com").trim().replace(/\/+$/, '');
@@ -18,9 +18,8 @@ module.exports = async (req, res) => {
   const OMADA_CID = (process.env.OMADA_CID || "dd4b631441b02b1d9787466c7bf876f7").trim();
 
   try {
-    // 1. Get Access Token
-    const authUrl = `${OMADA_URL}/openapi/authorize/token?grant_type=client_credentials`;
-    const tokenRes = await fetch(authUrl, {
+    // 1. Get Token
+    const authRes = await fetch(`${OMADA_URL}/openapi/authorize/token?grant_type=client_credentials`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -29,82 +28,45 @@ module.exports = async (req, res) => {
       })
     });
 
-    const tokenData = await tokenRes.json();
-    if (!tokenData?.result?.accessToken) {
-      return res.status(200).json({ found: false, error: "Auth failed", details: tokenData });
+    const tokenData = await authRes.json();
+    const token = tokenData?.result?.accessToken;
+
+    if (!token) {
+      return res.status(200).json({ found: false, error: "Auth token failed", details: tokenData });
     }
 
-    const token = tokenData.result.accessToken;
-
-    // 2. Fetch Vouchers Across Multiple Pages
-    let allVouchers = [];
-    let currentPage = 1;
-    let totalPages = 1;
-
-    do {
-      const voucherUrl = `${OMADA_URL}/openapi/v1/${OMADA_CID}/sites/${SITE_ID}/vouchers?page=${currentPage}&pageSize=100`;
-      const voucherRes = await fetch(voucherUrl, {
-        method: 'GET',
-        headers: { 'AccessToken': token, 'Content-Type': 'application/json' }
-      });
-
-      const voucherData = await voucherRes.json();
-
-      if (voucherData.errorCode === 0 && voucherData.result?.data) {
-        allVouchers = allVouchers.concat(voucherData.result.data);
-        totalPages = voucherData.result.totalRows ? Math.ceil(voucherData.result.totalRows / 100) : 1;
-      } else {
-        break;
-      }
-      currentPage++;
-    } while (currentPage <= totalPages && currentPage <= 10);
-
-    // Find Voucher
-    const match = allVouchers.find(v => {
-      const vCodeClean = String(v.code || '').trim().replace(/[^a-zA-Z0-9]/g, '');
-      return vCodeClean === cleanInput;
-    });
-
-    if (match) {
-      return res.json({
-        found: true,
-        code: match.code,
-        status: match.status === 1 ? 'ACTIVE' : (match.status === 2 ? 'EXPIRED' : 'UNUSED'),
-        timeRemaining: match.duration ? `${match.duration} Mins` : 'N/A',
-        dataLimit: match.trafficLimit ? `${match.trafficLimit} MB` : 'Unlimited',
-        firstUsed: match.startTime ? new Date(match.startTime).toLocaleString() : 'Not Yet Used'
-      });
-    }
-
-    // 3. Fallback: Search Active Connected Clients (for currently authorized devices)
-    const clientsUrl = `${OMADA_URL}/openapi/v1/${OMADA_CID}/sites/${SITE_ID}/clients?page=1&pageSize=100`;
-    const clientsRes = await fetch(clientsUrl, {
+    // 2. Fetch Vouchers (Page 1 - 1000 items)
+    const voucherRes = await fetch(`${OMADA_URL}/openapi/v1/${OMADA_CID}/sites/${SITE_ID}/vouchers?page=1&pageSize=1000`, {
       method: 'GET',
       headers: { 'AccessToken': token, 'Content-Type': 'application/json' }
     });
 
-    const clientsData = await clientsRes.json();
-    if (clientsData.errorCode === 0 && clientsData.result?.data) {
-      const clientMatch = clientsData.result.data.find(c => {
-        const authType = String(c.authType || c.authMethod || '');
-        return authType.includes(cleanInput) || String(c.voucherCode || '').includes(cleanInput);
-      });
+    const voucherData = await voucherRes.json();
+    const vouchers = voucherData?.result?.data || [];
 
-      if (clientMatch) {
-        return res.json({
-          found: true,
-          code: cleanInput,
-          status: 'ACTIVE',
-          timeRemaining: 'Connected Client',
-          dataLimit: 'Unlimited',
-          firstUsed: 'Currently Active'
-        });
-      }
+    // Search matched code
+    const match = vouchers.find(v => {
+      const c = String(v.code || '').trim().replace(/[^a-zA-Z0-9]/g, '');
+      return c === cleanInput;
+    });
+
+    if (match) {
+      return res.status(200).json({
+        found: true,
+        code: match.code,
+        status: match.status === 1 ? 'ACTIVE' : (match.status === 2 ? 'EXPIRED' : 'UNUSED'),
+        timeRemaining: match.duration ? `${match.duration} Mins` : 'N/A',
+        dataLimit: match.trafficLimit ? `${match.trafficLimit} MB` : 'Unlimited'
+      });
     }
 
-    return res.json({ found: false, totalScanned: allVouchers.length });
+    return res.status(200).json({ found: false, scanned: vouchers.length });
 
   } catch (err) {
-    return res.status(500).json({ found: false, error: err.message });
+    return res.status(200).json({
+      found: false,
+      error: "Catch Runtime Error",
+      message: err.message
+    });
   }
 };
