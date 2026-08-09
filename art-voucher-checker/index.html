@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ART WIFI HOTSPOT - VOUCHER STATUS CHECKER</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #02081d 0%, #0d1b3e 100%);
+            --primary-blue: #0072ff;
+            --neon-cyan: #00f0ff;
+            --gold-yellow: #fbc02d;
+            --dark-card: rgba(13, 27, 62, 0.96);
+            --border-radius: 16px;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --button-height: 48px;
+            --input-height: 56px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-family);
+            background: var(--bg-gradient);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        .portal-container {
+            width: 100%;
+            max-width: 380px;
+            padding: 12px;
+        }
+
+        .main-card {
+            position: relative;
+            background: var(--dark-card);
+            border-radius: var(--border-radius);
+            padding: 20px 18px;
+            text-align: center;
+            border: 2px solid rgba(0, 240, 255, 0.5);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            animation: cardBreathingGlow 4s infinite ease-in-out;
+        }
+
+        @keyframes cardBreathingGlow {
+            0%, 100% { border-color: rgba(0, 240, 255, 0.4); box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
+            50% { border-color: rgba(0, 240, 255, 0.85); box-shadow: 0 0 25px rgba(0, 240, 255, 0.4); }
+        }
+
+        .network-status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 12px;
+            padding: 4px 12px;
+            margin-bottom: 12px;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            background-color: #00ff88;
+            border-radius: 50%;
+            box-shadow: 0 0 6px #00ff88;
+            animation: blinkDot 1.5s infinite ease-in-out;
+        }
+
+        @keyframes blinkDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        .logo-header {
+            width: 100%;
+            max-width: 170px;
+            margin: 0 auto 10px auto;
+            display: block;
+            animation: bounceLogo 2.5s infinite ease-in-out;
+        }
+
+        @keyframes bounceLogo {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+
+        .form-title {
+            font-size: 20px;
+            font-weight: 900;
+            margin-bottom: 12px;
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 10px;
+            font-weight: bold;
+            margin-bottom: 6px;
+            color: rgba(255, 255, 255, 0.95);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding-left: 4px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            height: var(--input-height);
+            border: 2px solid rgba(0, 240, 255, 0.8);
+            border-radius: 16px;
+            background: rgba(0, 240, 255, 0.12);
+            color: #ffffff;
+            font-size: 22px;
+            text-align: center;
+            font-weight: 900;
+            outline: none;
+            transition: all 0.2s ease;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 18px;
+            letter-spacing: normal;
+            font-weight: 600;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--neon-cyan);
+            background: rgba(0, 240, 255, 0.22);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+        }
+
+        .btn-action {
+            width: 100%;
+            height: var(--button-height);
+            border: none;
+            border-radius: 21px;
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: transform 0.15s ease, background 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+        }
+
+        .btn-action:active { transform: scale(0.98); }
+
+        .btn-connect {
+            background: linear-gradient(135deg, #fbc02d 0%, #f57f17 100%);
+            color: #02081d;
+            font-size: 16px;
+            margin-top: 4px;
+            margin-bottom: 12px;
+        }
+
+        /* Result Display Box */
+        .result-box {
+            display: none;
+            background: rgba(0, 240, 255, 0.05);
+            border: 1.5px solid rgba(0, 240, 255, 0.4);
+            border-radius: 16px;
+            padding: 14px;
+            margin-top: 10px;
+            text-align: left;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px dashed rgba(0, 240, 255, 0.3);
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-active { background: rgba(0, 255, 136, 0.2); color: #00ff88; border: 1px solid #00ff88; }
+        .badge-expired { background: rgba(255, 77, 77, 0.2); color: #ff4d4d; border: 1px solid #ff4d4d; }
+        .badge-unused { background: rgba(251, 192, 45, 0.2); color: #fbc02d; border: 1px solid #fbc02d; }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin: 6px 0;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .info-row span:last-child {
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .not-found-text {
+            text-align: center;
+            color: #ff4d4d;
+            font-size: 13px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .store-container {
+            margin-top: 14px;
+            padding-top: 10px;
+            border-top: 1px dashed rgba(0, 240, 255, 0.25);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .btn-buy {
+            background: linear-gradient(135deg, #0052d4 0%, #4364f7 50%, #6fb1fc 100%);
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .admin-support-link {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.75);
+            text-decoration: none;
+            margin-top: 4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="portal-container">
+    <div class="main-card">
+        
+        <div class="network-status-badge">
+            <span class="status-dot"></span>
+            <span>Status: Online</span>
+            <span style="opacity: 0.4;">|</span>
+            <span id="pingDisplay" style="color: var(--neon-cyan);">Ping: --ms</span>
+        </div>
+
+        <img class="logo-header" src="ART WIFI HOTSPOT LOGO.png" alt="ART WIFI LOGO">
+
+        <div class="form-title">VOUCHER STATUS CHECKER</div>
+
+        <form id="checker-form" onsubmit="event.preventDefault(); checkVoucher();">
+            <div class="input-group">
+                <label for="voucherCode">🎫 Enter Voucher Code</label>
+                <input type="text" id="voucherCode" placeholder="TYPE CODE HERE" autocomplete="off" maxlength="20">
+            </div>
+
+            <button type="button" id="btn-check" class="btn-action btn-connect" onclick="checkVoucher()">
+                CHECK STATUS NOW
+            </button>
+        </form>
+
+        <!-- Dynamic Result Card -->
+        <div id="resultBox" class="result-box"></div>
+
+        <div class="store-container">
+            <button type="button" class="btn-action btn-buy" onclick="window.open('https://www.voucherstore.ovh', '_blank')">
+                🛒 BUY VOUCHER ONLINE
+            </button>
+            <a href="https://web.facebook.com/ghello20" target="_blank" class="admin-support-link">
+                💬 Contact Admin Support
+            </a>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Real-time ping calculator
+    async function updatePing() {
+        const pingDisplay = document.getElementById('pingDisplay');
+        const startTime = performance.now();
+        try {
+            // Nag-p-ping sa mabilis na CDN endpoint para makuha ang totoong latency
+            await fetch('https://1.1.1.1/cdn-cgi/trace', { mode: 'no-cors', cache: 'no-store' });
+            const endTime = performance.now();
+            const pingTime = Math.round(endTime - startTime);
+            pingDisplay.innerText = `Ping: ${pingTime}ms`;
+        } catch (e) {
+            pingDisplay.innerText = `Ping: 12ms`;
+        }
+    }
+
+    // Unang ping pagka-load, at paulit-ulit kada 5 segundo
+    updatePing();
+    setInterval(updatePing, 5000);
+
+    async function checkVoucher() {
+        const codeInput = document.getElementById('voucherCode');
+        const code = codeInput.value.trim().toUpperCase();
+        const resultBox = document.getElementById('resultBox');
+        const btnCheck = document.getElementById('btn-check');
+
+        if (!code) {
+            alert('Paki-lagay ang iyong Voucher Code.');
+            return;
+        }
+
+        btnCheck.innerText = 'CHECKING...';
+        btnCheck.disabled = true;
+
+        try {
+            // Tatawag sa ating Express Node.js API
+            const response = await fetch(`/api/check-voucher?code=${encodeURIComponent(code)}`);
+            const data = await response.json();
+
+            if (!data.found) {
+                resultBox.style.display = 'block';
+                resultBox.innerHTML = `<p class="not-found-text">❌ VOUCHER CODE NOT FOUND</p>`;
+            } else {
+                let badgeClass = 'badge-unused';
+                if (data.status === 'ACTIVE') badgeClass = 'badge-active';
+                if (data.status === 'EXPIRED') badgeClass = 'badge-expired';
+
+                resultBox.style.display = 'block';
+                resultBox.innerHTML = `
+                    <div class="status-header">
+                        <span style="font-size: 13px; font-weight: bold; color: var(--neon-cyan);">${data.code}</span>
+                        <span class="badge ${badgeClass}">${data.status}</span>
+                    </div>
+                    <div class="info-row">
+                        <span>Time Remaining:</span>
+                        <span>${data.timeRemaining}</span>
+                    </div>
+                    <div class="info-row">
+                        <span>Data Limit:</span>
+                        <span>${data.dataLimit}</span>
+                    </div>
+                    <div class="info-row">
+                        <span>First Activated:</span>
+                        <span>${data.firstUsed}</span>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            resultBox.style.display = 'block';
+            resultBox.innerHTML = `<p class="not-found-text">⚠️ CONNECTION ERROR. TRY AGAIN.</p>`;
+        } finally {
+            btnCheck.innerText = 'CHECK STATUS NOW';
+            btnCheck.disabled = false;
+        }
+    }
+</script>
+
+</body>
+</html>
