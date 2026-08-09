@@ -36,9 +36,9 @@ module.exports = async (req, res) => {
     return res.status(200).end();
   }
 
-  const code = req.query.code ? req.query.code.trim().toUpperCase() : '';
+  const cleanInput = req.query.code ? req.query.code.trim().replace(/[^a-zA-Z0-9]/g, '') : '';
 
-  if (!code) {
+  if (!cleanInput) {
     return res.status(400).json({ error: "Voucher code is required" });
   }
 
@@ -48,14 +48,17 @@ module.exports = async (req, res) => {
       `${OMADA_URL}/openapi/v1/${OMADA_CID}/sites/${SITE_ID}/vouchers`,
       {
         headers: { 'AccessToken': token },
-        params: { code: code }
+        params: { page: 1, pageSize: 1000 }
       }
     );
 
     const result = omadaRes.data;
 
     if (result.errorCode === 0 && result.result?.data?.length > 0) {
-      const voucher = result.result.data.find(v => v.code === code);
+      const voucher = result.result.data.find(v => {
+        const cleanVoucherCode = String(v.code).trim().replace(/[^a-zA-Z0-9]/g, '');
+        return cleanVoucherCode === cleanInput;
+      });
 
       if (!voucher) return res.json({ found: false });
 
