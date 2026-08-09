@@ -44,6 +44,16 @@ module.exports = async (req, res) => {
 
   try {
     const token = await getAccessToken();
+
+    // Debug 1: I-log ang paboritong sites ng controller
+    const sitesRes = await axios.get(
+      `${OMADA_URL}/openapi/v1/${OMADA_CID}/sites`,
+      { headers: { 'AccessToken': token }, params: { page: 1, pageSize: 100 } }
+    );
+    console.log("=== OMADA SITES FOUND ===");
+    console.log(JSON.stringify(sitesRes.data?.result?.data || sitesRes.data));
+
+    // Fetch Vouchers
     const omadaRes = await axios.get(
       `${OMADA_URL}/openapi/v1/${OMADA_CID}/sites/${SITE_ID}/vouchers`,
       {
@@ -51,6 +61,9 @@ module.exports = async (req, res) => {
         params: { page: 1, pageSize: 1000 }
       }
     );
+
+    console.log("=== OMADA VOUCHER RESPONSE ===");
+    console.log(JSON.stringify(omadaRes.data));
 
     const result = omadaRes.data;
 
@@ -74,6 +87,8 @@ module.exports = async (req, res) => {
       return res.json({ found: false });
     }
   } catch (error) {
+    console.error("=== ERROR DETAILED ===");
+    console.error(error.response?.data || error.message);
     res.status(500).json({ error: "Server error checking voucher" });
   }
 };
