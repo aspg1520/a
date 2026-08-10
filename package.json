@@ -1,9 +1,0 @@
-{
-  "name": "art-voucher-checker",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "start": "node api/check-voucher.js"
-  },
-  "dependencies": {}
-}
